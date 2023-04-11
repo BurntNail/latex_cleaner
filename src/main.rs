@@ -2,11 +2,7 @@ use std::{env, env::current_dir, ffi::OsStr, fs::remove_file, path::PathBuf};
 use walkdir::WalkDir;
 
 fn main() {
-    let target_extensions = [
-        OsStr::new("aux"),
-        OsStr::new("log"),
-        OsStr::new("synctex.gz"),
-    ];
+    let target_extensions = [OsStr::new("aux"), OsStr::new("log"), OsStr::new("gz")];
 
     let path = env::args()
         .nth(1)
