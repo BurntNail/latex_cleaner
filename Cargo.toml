@@ -1,0 +1,13 @@
+[package]
+name = "latex_cleaner"
+authors = ["Jack Maguire/BurntNail - BurntNail@proton.me"]
+description = "Utility for cleaning LaTeX intermediary files from the current directory or one passed in"
+license = "MIT"
+#repository = "TODO"
+version = "1.0.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+walkdir = "2.3.3"
