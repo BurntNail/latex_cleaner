@@ -27,6 +27,8 @@ fn main() -> color_eyre::Result<()> {
         .next()
         .map_or(false, |s| s.trim().eq_ignore_ascii_case("u")); //get whether or not we need to update, if nothing assume we don't
 
+    // we need to check the update files first as they may add new files that we need to delete.
+
     if update_before {
         for entry in WalkDir::new(path.clone())
             .into_iter()
