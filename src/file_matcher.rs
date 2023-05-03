@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, ffi::OsStr, path::Path};
 use strum::Display;
 use thiserror::Error;
 
@@ -33,8 +33,8 @@ impl<'a, 'b, S: ToString> TryFrom<&'a [&'b [S]]> for FileMatcher {
 }
 
 impl FileMatcher {
-    pub fn matches(&self, candidate: PathBuf) -> Result<bool, MatchError> {
-        let extension = match candidate.extension().map(|x| x.to_str()) {
+    pub fn matches(&self, candidate: &Path) -> Result<bool, MatchError> {
+        let extension = match candidate.extension().map(OsStr::to_str) {
             None => return Err(MatchError::MissingExtension),
             Some(None) => return Err(MatchError::CannotConvertToString),
             Some(Some(x)) => x,
@@ -43,24 +43,14 @@ impl FileMatcher {
             return Err(MatchError::CannotConvertToString);
         };
 
-        let mut works = false;
-
-        for ext in self.0.keys() {
-            if ext == extension {
-                let mut inner_works = true;
-
-                for needs_inner in self.0[ext] {
-                    if !string.contains(&needs_inner) {
-                        inner_works = false;
-                    }
-                }
-
-                if inner_works {
-                    works = true;
-                    break;
-                }
-            }
-        }
+        let works = self.0.keys().any(|ext| {
+            extension == ext
+                && self.0.get(ext).map_or(false, |inner_contains| {
+                    inner_contains
+                        .iter()
+                        .all(|inner_contains| string.contains(inner_contains))
+                })
+        });
 
         Ok(works)
     }

@@ -5,7 +5,6 @@ use crate::file_matcher::FileMatcher;
 use clap::Parser;
 use color_eyre::eyre::eyre;
 use std::{
-    ffi::OsStr,
     fs::remove_file,
     path::PathBuf,
     process::{Command, Stdio},
@@ -44,11 +43,7 @@ fn main() -> color_eyre::Result<()> {
             .into_iter()
             .filter_map(Result::ok)
             .map(|e| e.path().to_path_buf())
-            .filter(|x| {
-                target_compile_extensions
-                    .matches(path.clone())
-                    .unwrap_or(false)
-            })
+            .filter(|x| target_compile_extensions.matches(&path).unwrap_or(false))
         {
             println!("Compiling {path:?}");
 
