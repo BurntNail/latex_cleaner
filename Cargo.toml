@@ -12,6 +12,7 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.2.7", features = ["derive"] }
 color-eyre = "0.6.2"
+owo-colors = "3.5.0"
 strum = { version = "0.24.1", features = ["derive"] }
 thiserror = "1.0.40"
 walkdir = "2.3.3"

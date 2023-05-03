@@ -4,10 +4,12 @@
 use crate::file_matcher::FileMatcher;
 use clap::Parser;
 use color_eyre::eyre::eyre;
+use owo_colors::OwoColorize;
 use std::{
-    fs::remove_file,
+    fs::{remove_file, File},
+    io::Write,
     path::PathBuf,
-    process::{Command, Stdio},
+    process::{Command, Output, Stdio},
 };
 use walkdir::WalkDir;
 
@@ -39,33 +41,36 @@ fn main() -> color_eyre::Result<()> {
 
     // we need to check the update files first as they may add new files that we need to delete.
     if update {
+        println!("{}", "Beginning Compilation.".bold().bright_white());
+
         for path in WalkDir::new(path.clone())
             .into_iter()
             .filter_map(Result::ok)
             .map(|e| e.path().to_path_buf())
-            .filter(|x| target_compile_extensions.matches(&path).unwrap_or(false))
+            .filter(|path| target_compile_extensions.matches(path).unwrap_or(false))
         {
-            println!("Compiling {path:?}");
+            println!("{} {path:?}", "Compiling".white());
 
             let parent = path.parent().ok_or(eyre!("unable to get path parent"))?; //get the parent directory
             let status = Command::new("pdflatex") //run pdflatex
                 .current_dir(parent) //in the parent directory
                 .arg("-interaction=nonstopmode") //no interactions
                 .arg(path.clone()) //with the path we're in
-                .stdout(Stdio::null()) //without stdout, but with stderr
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
                 .status()?; //get the status
 
             if status.success() {
                 //if we did it right
-                println!("Successfully compiled: {path:?}"); //celebrate
+                println!("{}: {path:?}", "Successfully compiled".green()); //celebrate
             } else {
-                eprintln!(
-                    //else, fail
-                    "Failed to compile {path:?} - stopping future compilations: {status:?}."
-                );
+                //else, fail
+                eprintln!("{} {path:?}.", "Failed to compile".red(),);
             }
         }
     }
+
+    println!("{}", "Beginning Deletion.".bold().bright_white());
 
     for path in WalkDir::new(path)
         .into_iter()
@@ -76,8 +81,8 @@ fn main() -> color_eyre::Result<()> {
         //for every path we need to delete
         match remove_file(path.clone()) {
             //try to remove if
-            Ok(_) => println!("Successfully removed {path:?}"), //if it worked, celebrate
-            Err(e) => eprintln!("Error removing {path:?}: {e:?}"), //if not, then print error msg
+            Ok(_) => println!("{} {path:?}.", "Successfully removed".green()), //if it worked, celebrate
+            Err(e) => eprintln!("{} {path:?}: {e:?}", "Error removing".red()), //if not, then print error msg
         }
     }
 
