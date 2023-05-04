@@ -4,14 +4,13 @@ authors = ["Jack Maguire/BurntNail - BurntNail@proton.me"]
 description = "Utility for cleaning LaTeX intermediary files from the current directory or one passed in"
 license = "MIT"
 repository = "https://github.com/BurntNail/latex_cleaner.git"
-version = "1.2.0"
+version = "1.2.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 clap = { version = "4.2.7", features = ["derive"] }
-color-eyre = "0.6.2"
 owo-colors = "3.5.0"
 strum = { version = "0.24.1", features = ["derive"] }
 thiserror = "1.0.40"

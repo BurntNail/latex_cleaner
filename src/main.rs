@@ -3,10 +3,9 @@
 
 use crate::file_matcher::FileMatcher;
 use clap::Parser;
-use color_eyre::eyre::eyre;
 use owo_colors::OwoColorize;
 use std::{
-    fs::{remove_file},
+    fs::remove_file,
     path::PathBuf,
     process::{Command, Stdio},
 };
@@ -22,19 +21,28 @@ pub struct Args {
     pub update: bool,
 }
 
-fn main() -> color_eyre::Result<()> {
-    //main function that might fail
-    color_eyre::install().expect("unable to install color-eyre"); //install error-handling/backtraces framework
-
-    let target_remove_extensions = FileMatcher::try_from(
+fn main() {
+    let target_remove_extensions = match FileMatcher::try_from(
         [
             ["aux"].as_slice(),
             ["log"].as_slice(),
             ["gz", "synctex"].as_slice(),
         ]
-        .as_slice(), 
-    )?;
-    let target_compile_extensions = FileMatcher::try_from([["tex"].as_slice()].as_slice())?;
+        .as_slice(),
+    ) {
+        Ok(tre) => tre,
+        Err(e) => {
+            eprintln!("{}: {e:?}", "Error setting up FileMatcher to correctly target files".red());
+            std::process::exit(1);
+        }
+    };
+    let target_compile_extensions = match FileMatcher::try_from([["tex"].as_slice()].as_slice()) {
+        Ok(tre) => tre,
+        Err(e) => {
+            eprintln!("{}: {e:?}", "Error setting up FileMatcher to correctly target files".red());
+            std::process::exit(1);
+        }
+    };
 
     let Args { path, update } = Args::parse();
 
@@ -50,24 +58,38 @@ fn main() -> color_eyre::Result<()> {
         {
             println!("{} {path:?}", "Compiling".white());
 
-            let parent = path.parent().ok_or(eyre!("unable to get path parent"))?; //get the parent directory
-            let status = Command::new("pdflatex") //run pdflatex
+            let Some(parent) = path.parent() else {
+                eprintln!("{}", "Error getting path parent".red());
+                continue;
+            };
+
+            match Command::new("pdflatex") //run pdflatex
                 .current_dir(parent) //in the parent directory
                 .arg("-interaction=nonstopmode") //no interactions
                 .arg(path.clone()) //with the path we're in
                 .stdout(Stdio::null())
                 .stderr(Stdio::null())
-                .status()?; //get the status
-
-            if status.success() {
-                //if we did it right
-                println!("{}", "Successfully compiled!".green()); //celebrate
-            } else {
-                //else, fail
-                eprintln!("{}", "Failed to compile.".red(),);
+                .status()
+            {
+                Err(e) => eprintln!("{}: {e:?}", "Error with running pdflatex".red()),
+                Ok(status) => {
+                    if status.success() {
+                        //if we did it right
+                        println!("{}", "Successfully compiled!".green()); //celebrate
+                    } else {
+                        //else, fail
+                        eprintln!("{}", "Failed to compile.".red(),);
+                    }
+                }
             }
+
+            println!();
         }
     }
+
+    println!();
+    println!();
+
 
     println!("{}", "Beginning Deletion.".bold().bright_white());
 
@@ -84,6 +106,4 @@ fn main() -> color_eyre::Result<()> {
             Err(e) => eprintln!("{} {path:?}: {e:?}", "Error removing".red()), //if not, then print error msg
         }
     }
-
-    Ok(())
 }
