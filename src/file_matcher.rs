@@ -55,3 +55,91 @@ impl FileMatcher {
         Ok(works)
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use crate::file_matcher::MatchError;
+
+    use super::FileMatcher;
+
+    pub fn testing_matcher () -> FileMatcher {
+        FileMatcher::try_from(
+            [
+                ["aux"].as_slice(),
+                ["log"].as_slice(),
+                ["gz", "synctex"].as_slice(),
+                ["foo", "bar", "baz"].as_slice()
+            ]
+            .as_slice(), 
+        ).unwrap()
+    }
+
+    #[test]
+    pub fn working_file_matcher () {
+        testing_matcher();
+    }
+
+    #[test]
+    pub fn empty_file_matcher () {
+        let interior: [&[String]; 0] = [];
+
+        FileMatcher::try_from(
+            interior.as_slice(), 
+        ).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    pub fn empty_file_matcher_interior () {
+        FileMatcher::try_from(
+            [
+                ["works"].as_slice(),
+                [].as_slice()
+            ].as_slice()
+        ).unwrap();
+    }
+
+    #[test]
+    pub fn empty_test_matches () {
+        let m = testing_matcher();
+
+        assert!(matches!(m.matches(&PathBuf::from("")), Err(MatchError::MissingExtension)));
+    }
+
+    #[test]
+    pub fn match_failures () {
+        let m = testing_matcher();
+
+        assert!(matches!(m.matches(&PathBuf::from(".")), Err(MatchError::MissingExtension)));
+        assert!(matches!(m.matches(&PathBuf::from("abc.")), Ok(false)));
+    }
+
+    #[test]
+    pub fn only_extension_matches () {
+        let m = testing_matcher();
+
+        assert!(matches!(m.matches(&PathBuf::from("x.aux")), Ok(true)));
+        assert!(matches!(m.matches(&PathBuf::from(".aux")), Err(MatchError::MissingExtension)));
+        assert!(matches!(m.matches(&PathBuf::from("aux.")), Ok(false)));
+        assert!(matches!(m.matches(&PathBuf::from("aux")), Err(MatchError::MissingExtension)));
+        assert!(matches!(m.matches(&PathBuf::from("y.abcdef.aux")), Ok(true)));
+        assert!(matches!(m.matches(&PathBuf::from("bar.txt")), Ok(false)));
+    }
+
+    #[test]
+    pub fn extension_and_inner_matches () {
+        let m = testing_matcher();
+
+        assert!(matches!(m.matches(&PathBuf::from("a.synctex")), Ok(false)));
+        assert!(matches!(m.matches(&PathBuf::from("a.synctex.gz")), Ok(true)));
+        assert!(matches!(m.matches(&PathBuf::from("bar baz.foo")), Ok(true)));
+        assert!(matches!(m.matches(&PathBuf::from("baz bar.foo")), Ok(true)));
+        assert!(matches!(m.matches(&PathBuf::from("bar.foo")), Ok(false)));
+        assert!(matches!(m.matches(&PathBuf::from("foo.bar")), Ok(false)));
+        assert!(matches!(m.matches(&PathBuf::from(".foo")), Err(MatchError::MissingExtension)));
+        assert!(matches!(m.matches(&PathBuf::from("important backup.tar.gz")), Ok(false)));
+    }
+}
