@@ -7,7 +7,7 @@ use owo_colors::OwoColorize;
 use std::{
     fs::remove_file,
     path::PathBuf,
-    process::{Command, Stdio},
+    process::{Command, Output}, sync::mpsc::channel,
 };
 use walkdir::WalkDir;
 
@@ -48,7 +48,26 @@ fn main() {
 
     // we need to check the update files first as they may add new files that we need to delete.
     if update {
+        let (fail_tx, fail_rx) = channel();
+        let mut failed = vec![];
+
         println!("{}", "Beginning Compilation.".bold().bright_white());
+
+        ctrlc::set_handler(move || {
+            let mut failed = fail_rx.try_iter().collect::<Vec<_>>();
+            match failed.len() {
+                0 => println!("{}", "No files failed!".green()),
+                1 => println!("{}: {:?}.", "This file failed".red(), failed.remove(0)),
+                n => {
+                    print!("{}: ", "These files failed".red());
+                    for _ in 0..(n - 1) {
+                        print!("{:?}, ", failed.remove(0));
+                    }
+                    println!("{:?}.", failed.remove(0));
+                }
+            }
+            std::process::exit(1);
+        }).unwrap_or_else(|err| eprintln!("{}: {err:?}", "Error setting CTRLC handler".red()));
 
         for path in WalkDir::new(path.clone())
             .into_iter()
@@ -67,28 +86,45 @@ fn main() {
                 .current_dir(parent) //in the parent directory
                 .arg("-interaction=nonstopmode") //no interactions
                 .arg(path.clone()) //with the path we're in
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .status()
+                // .stdout(Stdio::null())
+                // .stderr(Stdio::null())
+                .output()
             {
                 Err(e) => eprintln!("{}: {e:?}", "Error with running pdflatex".red()),
-                Ok(status) => {
+                Ok(Output {stdout, stderr, status}) => {
                     if status.success() {
                         //if we did it right
                         println!("{}", "Successfully compiled!".green()); //celebrate
                     } else {
                         //else, fail
+                        eprintln!("{}", String::from_utf8_lossy(&stdout));
+                        eprintln!("{}", String::from_utf8_lossy(&stderr));
+
                         eprintln!("{}", "Failed to compile.".red(),);
+
+                        failed.push(path.clone());
+                        fail_tx.send(path).unwrap_or_else(|err| eprintln!("{}: {err:?}", "Error sending file to CTRLC handler".red()));
                     }
                 }
             }
-
-            println!();
         }
-    }
 
-    println!();
-    println!();
+        match failed.len() {
+            0 => println!("{}", "No files failed!".green()),
+            1 => println!("{}: {:?}.", "This file failed".red(), failed.remove(0)),
+            n => {
+                print!("{}: ", "These files failed".red());
+                for _ in 0..(n - 1) {
+                    print!("{:?}, ", failed.remove(0));
+                }
+                println!("{:?}.", failed.remove(0));
+            }
+        }
+
+        ctrlc::set_handler(|| std::process::exit(1)).unwrap_or_else(|err| eprintln!("{}: {err:?}", "Error setting CTRLC handler".red()));
+
+        println!();
+    }
 
 
     println!("{}", "Beginning Deletion.".bold().bright_white());
