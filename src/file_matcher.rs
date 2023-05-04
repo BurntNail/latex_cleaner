@@ -45,7 +45,7 @@ impl FileMatcher {
 
         let works = self.0.keys().any(|ext| {
             extension == ext
-                && self.0.get(ext).map_or(false, |inner_contains| {
+                && self.0.get(ext).map_or(true, |inner_contains| {
                     inner_contains
                         .iter()
                         .all(|inner_contains| string.contains(inner_contains))

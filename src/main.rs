@@ -32,7 +32,7 @@ fn main() -> color_eyre::Result<()> {
             ["log"].as_slice(),
             ["gz", "synctex"].as_slice(),
         ]
-        .as_slice(),
+        .as_slice(), 
     )?;
     let target_compile_extensions = FileMatcher::try_from([["tex"].as_slice()].as_slice())?;
 
@@ -61,10 +61,10 @@ fn main() -> color_eyre::Result<()> {
 
             if status.success() {
                 //if we did it right
-                println!("{}: {path:?}", "Successfully compiled".green()); //celebrate
+                println!("{}", "Successfully compiled!".green()); //celebrate
             } else {
                 //else, fail
-                eprintln!("{} {path:?}.", "Failed to compile".red(),);
+                eprintln!("{}", "Failed to compile.".red(),);
             }
         }
     }
