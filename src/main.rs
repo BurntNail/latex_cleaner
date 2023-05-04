@@ -6,10 +6,9 @@ use clap::Parser;
 use color_eyre::eyre::eyre;
 use owo_colors::OwoColorize;
 use std::{
-    fs::{remove_file, File},
-    io::Write,
+    fs::{remove_file},
     path::PathBuf,
-    process::{Command, Output, Stdio},
+    process::{Command, Stdio},
 };
 use walkdir::WalkDir;
 
